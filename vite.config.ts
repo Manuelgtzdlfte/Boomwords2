@@ -3,5 +3,5 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: './',  // 🆕 Base relativa
+  base: '/Boomwords2/',  // 🆕 Con el path completo
 })
