@@ -1,4 +1,4 @@
-import './LetterCard.css';
+import './letterCard.css';
 
 interface LetterCardProps {
   letter: string;
