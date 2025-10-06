@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { LetterCard } from '../../components/letterCard/letterCard';
 import { userService } from '../../components/userService/userService';
 import { datos, guardarDatosIA } from '../../components/iaLearned/iaLearned';
+import { GamePopUp } from '../../components/gamePopUp/gamePopUp';
+
 
 interface GamePageProps {
   difficulty: Difficulty;
@@ -278,6 +280,8 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [redeemedTime, setRedeemedTime] = useState(false);
   const [gameActive, setGameActive] = useState(true);
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState('');
 
   // Instanciar la IA
   const ia = new IA_Ahorcado(datos);
@@ -288,6 +292,7 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
   };
 
   const goToChooseDif = () => {
+    setShowPopup(false);
     navigate('/chooseDif');
   };
   
@@ -333,6 +338,7 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       setGameActive(true); 
+      setShowPopup(false);
     }
 
     const words = wordBank[difficulty];
@@ -360,6 +366,8 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
           setMessage(`💥 ¡Boom! Perdiste. Era ${newWord}`);
           // La IA aprende también al perder
           ia.aprender_de_palabra(newWord, Array.from(guessedLetters));
+          setPopupMessage(`💥 ¡Boom! La palabra era: ${newWord} 💥`);
+          setShowPopup(true);
           return 0;
         }
         return prevTime - 1;
@@ -410,6 +418,8 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
       if (timerRef.current) clearInterval(timerRef.current);
       setGameOver(true);
       setMessage(`🎉 ¡Ganaste!`);
+      setPopupMessage(`🎉 ¡Felicidades! Ganaste con ${score} puntos 🎉`);
+      setShowPopup(true);
     }
   };
 
@@ -544,17 +554,12 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
           </button>
         </div>
       )}
-
-      {gameOver && (
-        <div className="game-over-actions">
-          <button onClick={startGame} className="restart-button">
-            Jugar otra vez
-          </button>
-          <button onClick={goToChooseDif} className="restart-button">
-            Elegir dificultad
-          </button>
-        </div>
-      )}
+      <GamePopUp
+      isOpen={showPopup}
+      message={popupMessage}
+      onPlayAgain={startGame}
+      onChooseDifficulty={goToChooseDif}
+    />
     </div>
   );
 };
