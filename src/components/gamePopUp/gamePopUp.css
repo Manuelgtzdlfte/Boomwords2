@@ -91,14 +91,6 @@
   line-height: 1.2;
 }
 
-/* Contenedor de botones */
-.popup-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  margin-top: 1rem;
-}
-
 /* Estilo base para ambos botones */
 .popup-button {
   padding: 1.8rem 2.5rem;
@@ -123,27 +115,6 @@
     0 15px 20px rgba(0, 0, 0, 0.5);
 }
 
-/* Efecto de click en botones */
-.popup-button:active {
-  transform: translateY(8px);
-  box-shadow: 
-    0 0 0 rgba(0, 0, 0, 0.3),
-    0 5px 10px rgba(0, 0, 0, 0.5);
-}
-
-/* Botón Jugar Otra Vez */
-.play-again-btn {
-  background: linear-gradient(145deg, #DB2A0A, #FF6B35);
-  color: #FFF;
-  border: 3px solid #FF6B35;
-  text-shadow: 
-    -2px -2px 0 #000,
-    2px -2px 0 #000,
-    -2px 2px 0 #000,
-    2px 2px 0 #000,
-    0 0 10px rgba(255, 255, 255, 0.5);
-}
-
 .play-again-btn:hover {
   background: linear-gradient(145deg, #FF6B35, #DB2A0A);
   transform: translateY(-5px) scale(1.05);
@@ -152,19 +123,6 @@
     0 25px 30px rgba(219, 42, 10, 0.6),
     0 0 40px rgba(255, 107, 53, 0.8);
   animation: buttonGlitch 0.4s steps(2) infinite;
-}
-
-/* Botón Elegir Dificultad */
-.difficulty-btn {
-  background: linear-gradient(145deg, #FF6B35, #DB2A0A);
-  color: #FFF;
-  border: 3px solid #DB2A0A;
-  text-shadow: 
-    -2px -2px 0 #000,
-    2px -2px 0 #000,
-    -2px 2px 0 #000,
-    2px 2px 0 #000,
-    0 0 10px rgba(255, 255, 255, 0.5);
 }
 
 .difficulty-btn:hover {
@@ -199,23 +157,6 @@
     transform: translateY(-5px) scale(1.05) translate(0);
     filter: hue-rotate(0deg);
   }
-}
-
-/* Efecto de destello en botones */
-.popup-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.4),
-    transparent
-  );
-  transition: left 0.6s;
 }
 
 .popup-button:hover::before {
@@ -396,23 +337,6 @@
   opacity: 1;
 }
 
-@keyframes buttonGlitch {
-  0% {
-    transform: translate(0) scale(1.1);
-  }
-  25% {
-    transform: translate(-10px, 5px) scale(1.15) skew(-5deg);
-  }
-  50% {
-    transform: translate(10px, -5px) scale(1.1) skew(5deg);
-  }
-  75% {
-    transform: translate(-15px, -5px) scale(1.05) skew(-3deg);
-  }
-  100% {
-    transform: translate(0) scale(1.1);
-  }
-}
 
 @keyframes glitchLayer1 {
   0% {
