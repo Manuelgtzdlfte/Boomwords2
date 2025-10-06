@@ -18,7 +18,7 @@ export const GamePopUp = ({ isOpen, message, onPlayAgain, onChooseDifficulty }: 
                     {/* Botón Jugar Otra Vez */}
                     <div className="button-wrapper">
                         <button 
-                            className="glitched-button"  // ← Cambié esta clase
+                            className="glitched-button" 
                             onClick={onPlayAgain}
                         >
                             🎮 Jugar Otra Vez
@@ -34,7 +34,7 @@ export const GamePopUp = ({ isOpen, message, onPlayAgain, onChooseDifficulty }: 
                     {/* Botón Elegir Dificultad */}
                     <div className="button-wrapper">
                         <button 
-                            className="glitched-button"  // ← Cambié esta clase
+                            className="glitched-button"
                             onClick={onChooseDifficulty}
                         >
                             🧩 Elegir Dificultad
