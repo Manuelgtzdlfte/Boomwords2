@@ -512,7 +512,7 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
       {!showQuestion ? (
         <>
           <div className="suggestion-section">
-            {suggestion && (
+            {suggestion && time <= 40 && (
               <div className="suggestion">
                 <span>💡 CONSEJO: '{suggestion.toUpperCase()}'</span>
                 <button onClick={useSuggestion} className="use-suggestion-btn">
