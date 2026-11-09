@@ -4,7 +4,7 @@
   min-height: 100dvh;
   width: 100%;
   overflow-x: hidden;
-  padding: clamp(1rem, 3vw, 2rem);
+  padding: clamp(1rem, 2.5vh, 2rem) clamp(1rem, 4vw, 4rem);
   font-family: 'Wendy One', sans-serif;
   background-image: url(./../../assets/backgrounddifficultyselection.png);
   background-size: cover;
@@ -33,7 +33,7 @@
 .difficulty-container {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: clamp(1rem, 2.5vh, 1.75rem);
   margin-left: 0;
   z-index: 1;
   width: 100%;
@@ -435,6 +435,8 @@
     flex-direction: row;
     justify-content: center;
     align-items: center;
+    gap: clamp(2.5rem, 5vw, 4.5rem);
+    padding: clamp(1rem, 2.5vh, 2rem) clamp(2rem, 7vw, 7rem);
   }
 
   .user-stats-panel {
