@@ -10,27 +10,38 @@ export interface DatosAprendizaje {
   total_aprendido: number;
 }
 
+export const obtenerDatosIniciales = (): DatosAprendizaje => ({
+  historial: {
+    'e': 15, 'a': 12, 'o': 9, 's': 7, 'n': 6, 'r': 6, 'i': 6, 
+    'l': 5, 'd': 5, 't': 4, 'u': 4, 'm': 3, 'c': 3, 'p': 2,
+    'b': 2, 'g': 2, 'v': 1, 'y': 1, 'q': 1, 'h': 1, 'f': 1,
+    'z': 1, 'j': 1, 'ñ': 1, 'x': 1, 'k': 1, 'w': 1
+  },
+  total_aprendido: 100
+});
+
 // Cargar datos guardados o usar datos iniciales
-const cargarDatosGuardados = (): DatosAprendizaje => {
+export const cargarDatosGuardados = (): DatosAprendizaje => {
   try {
     const guardado = localStorage.getItem('ia_aprendizaje');
     if (guardado) {
-      return JSON.parse(guardado);
+      const parsed = JSON.parse(guardado);
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        parsed.historial &&
+        typeof parsed.historial === 'object' &&
+        typeof parsed.total_aprendido === 'number'
+      ) {
+        return parsed;
+      }
     }
   } catch (error) {
     console.log('No se pudieron cargar datos previos de la IA, usando iniciales');
   }
   
   // Datos iniciales basados en frecuencia de letras en español
-  return {
-    historial: {
-      'e': 15, 'a': 12, 'o': 9, 's': 7, 'n': 6, 'r': 6, 'i': 6, 
-      'l': 5, 'd': 5, 't': 4, 'u': 4, 'm': 3, 'c': 3, 'p': 2,
-      'b': 2, 'g': 2, 'v': 1, 'y': 1, 'q': 1, 'h': 1, 'f': 1,
-      'z': 1, 'j': 1, 'ñ': 1, 'x': 1, 'k': 1, 'w': 1
-    },
-    total_aprendido: 100
-  };
+  return obtenerDatosIniciales();
 };
 
 // Guardar datos en localStorage
