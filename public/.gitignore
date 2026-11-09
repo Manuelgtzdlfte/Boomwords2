@@ -1,0 +1,13 @@
+# Bloquear variables de entorno, llaves y datos sensibles
+.env
+.env.*
+!.env.example
+*.local
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+*.log
+node_modules/
+.DS_Store
