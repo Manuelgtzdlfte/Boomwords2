@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, useRef, type FormEvent } from 'react';
 import './setYourName.css';
 import { userService } from '../../components/userService/userService';
 
@@ -13,32 +13,48 @@ export const SetYourName = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [recoveryMessage, setRecoveryMessage] = useState('');
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const currentUser = userService.getCurrentUser();
+    if (currentUser) {
+      navigate('/chooseDif');
+    }
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [navigate]);
   
   const validateForm = () => {
     const newErrors = { username: '', email: '', accessKey: '' };
     let isValid = true;
+    const trimmedUsername = username.trim();
+    const trimmedEmail = email.trim();
+    const trimmedAccessKey = accessKey.trim();
 
-    if (!username.trim() && !showForgotPassword) {
+    if (!trimmedUsername && !showForgotPassword) {
       newErrors.username = 'Username is required';
       isValid = false;
-    } else if (username.length < 3 && !showForgotPassword) {
+    } else if (trimmedUsername.length < 3 && !showForgotPassword) {
       newErrors.username = 'Username must be at least 3 characters';
       isValid = false;
     }
 
     // Email validation for registration and recovery
-    if ((!isLogin || showForgotPassword) && !email.trim()) {
+    if ((!isLogin || showForgotPassword) && !trimmedEmail) {
       newErrors.email = 'Email is required';
       isValid = false;
-    } else if ((!isLogin || showForgotPassword) && !/\S+@\S+\.\S+/.test(email)) {
+    } else if ((!isLogin || showForgotPassword) && !/\S+@\S+\.\S+/.test(trimmedEmail)) {
       newErrors.email = 'Email is invalid';
       isValid = false;
     }
 
-    if (!accessKey.trim() && !showForgotPassword) {
+    if (!trimmedAccessKey && !showForgotPassword) {
       newErrors.accessKey = 'Access key is required';
       isValid = false;
-    } else if (accessKey.length < 6 && !showForgotPassword) {
+    } else if (trimmedAccessKey.length < 6 && !showForgotPassword) {
       newErrors.accessKey = 'Access key must be at least 6 characters';
       isValid = false;
     }
@@ -49,6 +65,7 @@ export const SetYourName = () => {
   
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     
     if (showForgotPassword) {
       handlePasswordRecovery();
@@ -60,10 +77,16 @@ export const SetYourName = () => {
     }
     
     setIsSubmitting(true);
+    const cleanUsername = username.trim();
+    const cleanEmail = email.trim();
     
-    setTimeout(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(() => {
       if (isLogin) {
-        const user = userService.loginUser(username, accessKey);
+        const user = userService.loginUser(cleanUsername, accessKey);
         if (user) {
           userService.setCurrentUser(user);
           goToChooseDif();
@@ -76,9 +99,9 @@ export const SetYourName = () => {
         }
       } else {
         // Register with email
-        const success = userService.registerUser(username, email, accessKey);
+        const success = userService.registerUser(cleanUsername, cleanEmail, accessKey);
         if (success) {
-          const user = userService.loginUser(username, accessKey);
+          const user = userService.loginUser(cleanUsername, accessKey);
           if (user) {
             userService.setCurrentUser(user);
             goToChooseDif();
@@ -86,13 +109,13 @@ export const SetYourName = () => {
         } else {
           // Check if username or email is taken
           const users = userService.getUsers();
-          if (users.find(u => u.username === username)) {
+          if (users.find(u => u.username.toLowerCase() === cleanUsername.toLowerCase())) {
             setErrors({ 
               username: 'Username already taken', 
               email: '',
               accessKey: '' 
             });
-          } else if (users.find(u => u.email === email)) {
+          } else if (users.find(u => u.email.toLowerCase() === cleanEmail.toLowerCase())) {
             setErrors({ 
               username: '', 
               email: 'Email already registered',
@@ -111,13 +134,18 @@ export const SetYourName = () => {
     }
 
     setIsSubmitting(true);
+    const cleanEmail = email.trim();
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
     
-    setTimeout(() => {
-      const accessKey = userService.recoverPassword(email);
+    timeoutRef.current = setTimeout(() => {
+      const recoveredKey = userService.recoverPassword(cleanEmail);
       
-      if (accessKey) {
+      if (recoveredKey) {
         // place the email logic 
-        setRecoveryMessage(`Password recovery instructions have been sent to ${email}`);
+        setRecoveryMessage(`Password recovery instructions have been sent to ${cleanEmail}`);
       } else {
         setRecoveryMessage('Email not found. Please check your email address.');
       }
@@ -142,7 +170,7 @@ export const SetYourName = () => {
   
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleSubmit(e as any);
+      handleSubmit(e as unknown as FormEvent);
     }
   };
   
@@ -178,7 +206,7 @@ export const SetYourName = () => {
             </div>
           </div>
           <div className="card-body">
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
               {/* Username field - hidden during password recovery */}
               {!showForgotPassword && (
                 <div className="form-group">
@@ -271,7 +299,7 @@ export const SetYourName = () => {
                 type="submit" 
                 className="submit-btn"
                 disabled={isSubmitting}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyPress}
               >
                 <span className="btn-text">
                   {isSubmitting ? 'PROCESSING...' : 

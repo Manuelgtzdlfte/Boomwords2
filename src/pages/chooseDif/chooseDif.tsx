@@ -30,6 +30,7 @@ export const ChooseDif = () => {
   
   const handleLogout = () => {
     userService.logout();
+    setUserStats({ username: '', highScore: 0, gamesPlayed: 0 });
     navigate('/'); 
   }
   
@@ -70,7 +71,7 @@ export const ChooseDif = () => {
               style={{ width: `${Math.min((userStats.highScore / 1000) * 100, 100)}%` }}
             ></div>
           </div>
-          <span className="progress-text">NEXT RANK: {1000 - userStats.highScore} PTS</span>
+          <span className="progress-text">NEXT RANK: {Math.max(0, 1000 - userStats.highScore)} PTS</span>
         </div>
       </div>
       

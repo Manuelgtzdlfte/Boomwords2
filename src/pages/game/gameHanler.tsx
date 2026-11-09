@@ -4,7 +4,7 @@ import { wordBank, type Difficulty } from '../../components/wordBanks/index';
 import { useNavigate } from 'react-router-dom';
 import { LetterCard } from '../../components/letterCard/letterCard';
 import { userService } from '../../components/userService/userService';
-import { datos, guardarDatosIA } from '../../components/iaLearned/iaLearned';
+import { datos, guardarDatosIA, type DatosAprendizaje } from '../../components/iaLearned/iaLearned';
 import { GamePopUp } from '../../components/gamePopUp/gamePopUp';
 
 
@@ -13,7 +13,7 @@ interface GamePageProps {
 }
 
 // Preguntas capciosas para tiempo extra
-const questions = [
+export const questions = [
   {
     question: 'Un avión choca en la frontera entre México y Estados Unidos. ¿En qué país entierran a los supervivientes? \n 1)Mexico \n 2)Estados Unidos \n 3)Ninguno',
     answer: 3 // No se entierran a los supervivientes
@@ -23,11 +23,11 @@ const questions = [
     answer: 5 // Todos los meses tienen al menos 28 días
   },
   {
-    question: 'Un granjero tiene 15 ovejas y se le mueren todas menos 9. ¿Cuántas ovejas le quedan?\n 1)1 \n 2)9 \n 3)4 \n 5)Todas \n 5)Ninguna', 
+    question: 'Un granjero tiene 15 ovejas y se le mueren todas menos 9. ¿Cuántas ovejas le quedan?\n 1)1 \n 2)9 \n 3)4 \n 4)Todas \n 5)Ninguna', 
     answer: 2 // "Todas menos 9" significa que le quedan 9
   },
   {
-    question: 'Tienes una cerilla y entras en una habitación donde hay una lámpara de aceite, una vela y una estufa de leña. ¿Qué enciendes primero? \n 1)lámpara de aceite \n 2)vela \n 3)cerillo \n 3)estufa de leña',
+    question: 'Tienes una cerilla y entras en una habitación donde hay una lámpara de aceite, una vela y una estufa de leña. ¿Qué enciendes primero? \n 1)lámpara de aceite \n 2)vela \n 3)cerillo \n 4)estufa de leña',
     answer: 3 // La cerilla (match)
   },
   {
@@ -44,12 +44,48 @@ const questions = [
   }
 ];
 
-interface DatosAprendizaje {
-  historial: Record<string, number>;
-  total_aprendido: number;
-}
+export const normalizeLetter = (char: string): string => {
+  if (!char) return '';
+  if (char === 'ñ' || char === 'Ñ') return 'ñ';
+  return char
+    .split('')
+    .map(c => (c === 'ñ' || c === 'Ñ' ? 'ñ' : c.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()))
+    .join('');
+};
 
-class IA_Ahorcado {
+export const isValidGuessInput = (input: string): boolean => {
+  if (!input || typeof input !== 'string') return false;
+  const trimmed = input.trim();
+  if (trimmed.length !== 1) return false;
+  return /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]$/.test(trimmed);
+};
+
+export const createInitialDisplay = (word: string): string[] => {
+  return word.split('').map(char => (char === ' ' ? ' ' : '_'));
+};
+
+export const calculateScoreByDifficulty = (
+  difficulty: Difficulty,
+  remainingTime: number,
+  penaltyPoints: number = 0,
+  multiplier: number = 1
+): number => {
+  const baseScores: Record<Difficulty, number> = {
+    facil: 50,
+    medio: 75,
+    dificil: 100
+  };
+  const validDifficulty: Difficulty = difficulty in baseScores ? difficulty : 'facil';
+  const safeTime = Number.isFinite(remainingTime) ? Math.max(0, remainingTime) : 0;
+  const safePenalty = Number.isFinite(penaltyPoints) ? Math.max(0, penaltyPoints) : 0;
+  const safeMultiplier = Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1;
+
+  const timeBonus = Math.floor(safeTime * 0.75);
+  const rawScore = (baseScores[validDifficulty] + timeBonus - safePenalty) * safeMultiplier;
+  return Math.max(0, Math.floor(rawScore));
+};
+
+export class IA_Ahorcado {
   private letras_comunes: string[];
   private datos: DatosAprendizaje;
   private palabras_adivinadas: string[];
@@ -64,7 +100,10 @@ class IA_Ahorcado {
   // 🔄 GUARDAR APRENDIZAJE - Actualiza y guarda lo aprendido
   guardar_aprendizaje(): void {
     // Calcular total aprendido sumando todos los valores del historial
-    this.datos.total_aprendido = Object.values(this.datos.historial).reduce((sum, value) => sum + value, 0);
+    this.datos.total_aprendido = Object.values(this.datos.historial).reduce(
+      (sum, value) => sum + (Number.isFinite(value) ? value : 0),
+      0
+    );
     
     // Guardar en localStorage para persistir entre sesiones
     guardarDatosIA(this.datos);
@@ -75,16 +114,20 @@ class IA_Ahorcado {
   // 🧠 APRENDER DE CADA PALABRA - Método principal de aprendizaje
   aprender_de_palabra(palabra_adivinada: string, letras_usadas: string[]): void {
     console.log("🧠 IA aprendiendo de palabra:", palabra_adivinada);
+    const palabraNormalizada = normalizeLetter(palabra_adivinada);
     
     // 1. APRENDER DE LETRAS USADAS (con diferente peso para aciertos/errores)
-    for (let letra of letras_usadas) {
+    for (const letraRaw of letras_usadas) {
+      const letra = normalizeLetter(letraRaw);
+      if (!letra || letra.length !== 1) continue;
+
       // Si la letra no existe en el historial, inicializarla
       if (!this.datos.historial[letra]) {
         this.datos.historial[letra] = 1; // Valor inicial para letras nuevas
       }
       
       // 📊 Dar más peso a letras correctas (3 puntos) que a incorrectas (0.5 puntos)
-      if (palabra_adivinada.includes(letra)) {
+      if (palabraNormalizada.includes(letra)) {
         this.datos.historial[letra] += 3; // Acierto - la letra es útil
         console.log(`   ✅ Aprendió acierto con '${letra}': +3`);
       } else {
@@ -97,7 +140,7 @@ class IA_Ahorcado {
     this.palabras_adivinadas.push(palabra_adivinada);
     
     // 3. APRENDER COMBINACIONES DE LETRAS - Dígrafos comunes en español
-    this.aprender_combinaciones(palabra_adivinada);
+    this.aprender_combinaciones(palabraNormalizada);
     
     // 💾 Guardar todo el aprendizaje
     this.guardar_aprendizaje();
@@ -109,13 +152,15 @@ class IA_Ahorcado {
   // 🔤 APRENDER COMBINACIONES - Mejora el reconocimiento de patrones
   private aprender_combinaciones(palabra: string): void {
     // Dígrafos comunes en español (2 letras que forman un sonido)
-    const digrafos_comunes = ['ch', 'll', 'qu', 'rr', 'gu', 'gü'];
+    const digrafos_comunes = ['ch', 'll', 'qu', 'rr', 'gu'];
     
-    for (let digrafo of digrafos_comunes) {
+    for (const digrafo of digrafos_comunes) {
       if (palabra.includes(digrafo)) {
+        const l1 = normalizeLetter(digrafo[0]);
+        const l2 = normalizeLetter(digrafo[1]);
         // 📚 Dar bonus a ambas letras del dígrafo cuando aparecen juntas
-        this.datos.historial[digrafo[0]] += 1;
-        this.datos.historial[digrafo[1]] += 1;
+        this.datos.historial[l1] = (this.datos.historial[l1] || 1) + 1;
+        this.datos.historial[l2] = (this.datos.historial[l2] || 1) + 1;
         console.log(`   🔤 Aprendió dígrafo '${digrafo}': bonus +1 a ambas letras`);
       }
     }
@@ -129,15 +174,16 @@ class IA_Ahorcado {
 
   // 💡 SUGERIR LETRA - Método principal para ayudar al jugador
   sugerir_letra(letras_probadas: string[], palabra_actual?: string): string | null {
-    console.log("💡 IA buscando sugerencia... Letras probadas:", letras_probadas);
+    const probadasNormalizadas = letras_probadas.map(l => normalizeLetter(l));
+    console.log("💡 IA buscando sugerencia... Letras probadas:", probadasNormalizadas);
     
     // 🎯 ESTRATEGIA 1: USAR TODO EL ALFABETO COMO BASE
-    let letras_posibles: Record<string, number> = {};
+    const letras_posibles: Record<string, number> = {};
     const alfabeto = 'abcdefghijklmnñopqrstuvwxyz'; // Alfabeto español completo
     
-    for (let letra of alfabeto) {
+    for (const letra of alfabeto) {
       // Solo considerar letras que no se han probado
-      if (!letras_probadas.includes(letra)) {
+      if (!probadasNormalizadas.includes(letra)) {
         // Usar frecuencia aprendida o valor por defecto si es nueva
         letras_posibles[letra] = this.datos.historial[letra] || 1;
       }
@@ -145,7 +191,7 @@ class IA_Ahorcado {
 
     // 🎯 ESTRATEGIA 2: USAR CONTEXTO DE LA PALABRA ACTUAL (si hay pistas)
     if (palabra_actual && palabra_actual.includes('_')) {
-      const sugerencia_contexto = this.sugerir_por_contexto(palabra_actual, letras_probadas);
+      const sugerencia_contexto = this.sugerir_por_contexto(palabra_actual, probadasNormalizadas);
       if (sugerencia_contexto) {
         console.log(`   🎯 Sugerencia por contexto: '${sugerencia_contexto}'`);
         return sugerencia_contexto;
@@ -153,8 +199,8 @@ class IA_Ahorcado {
     }
 
     // 🎯 ESTRATEGIA 3: PRIORIZAR VOCALES AL INICIO
-    if (this.deberia_sugerir_vocal(letras_probadas, palabra_actual)) {
-      const vocal = this.sugerir_vocal(letras_probadas);
+    if (this.deberia_sugerir_vocal(probadasNormalizadas, palabra_actual)) {
+      const vocal = this.sugerir_vocal(probadasNormalizadas);
       if (vocal) {
         console.log(`   🅰️ Sugerencia vocal: '${vocal}'`);
         return vocal;
@@ -169,8 +215,8 @@ class IA_Ahorcado {
     }
     
     // 🎯 ESTRATEGIA 5: FALLBACK A LETRAS COMUNES (último recurso)
-    for (let letra of this.letras_comunes) {
-      if (!letras_probadas.includes(letra)) {
+    for (const letra of this.letras_comunes) {
+      if (!probadasNormalizadas.includes(letra)) {
         console.log(`   🔄 Fallback a letra común: '${letra}'`);
         return letra;
       }
@@ -195,9 +241,11 @@ class IA_Ahorcado {
       'cr': 'e',    // cre, cra
     };
 
+    const palabraNorm = normalizeLetter(palabra);
+
     // 🔎 Buscar patrones en la palabra actual
-    for (let i = 0; i < palabra.length - 1; i++) {
-      const par_actual = palabra[i] + palabra[i + 1];
+    for (let i = 0; i < palabraNorm.length - 1; i++) {
+      const par_actual = palabraNorm[i] + palabraNorm[i + 1];
       const letra_sugerida = patrones_comunes[par_actual];
       
       // ✅ Verificar que existe el patrón y la letra sugerida no ha sido probada
@@ -221,7 +269,7 @@ class IA_Ahorcado {
   // 🅰️ SUGERIR VOCAL - Ordenadas por frecuencia en español
   private sugerir_vocal(letras_probadas: string[]): string | null {
     const vocales_orden = ['e', 'a', 'o', 'i', 'u']; // Orden de frecuencia en español
-    for (let vocal of vocales_orden) {
+    for (const vocal of vocales_orden) {
       if (!letras_probadas.includes(vocal)) {
         return vocal;
       }
@@ -266,6 +314,7 @@ class IA_Ahorcado {
 }
 
 export const GameHandler = ({ difficulty }: GamePageProps) => {
+  const validDifficulty: Difficulty = difficulty in wordBank ? difficulty : 'facil';
   const navigate = useNavigate();
   const [selectedWord, setSelectedWord] = useState("");
   const [display, setDisplay] = useState<string[]>([]);
@@ -283,47 +332,58 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
 
-  // Instanciar la IA
-  const ia = new IA_Ahorcado(datos);
+  // Instanciar la IA una sola vez por montaje
+  const iaRef = useRef<IA_Ahorcado>(new IA_Ahorcado(datos));
+  const ia = iaRef.current;
 
-  const normalizeLetter = (char: string): string => {
-    if (char === 'ñ' || char === 'Ñ') return 'ñ';
-    return char.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const guessedLettersRef = useRef<Set<string>>(new Set());
+  const showQuestionRef = useRef<boolean>(false);
+
+  const registerTimeout = (fn: () => void, delay: number) => {
+    const id = setTimeout(fn, delay);
+    timeoutsRef.current.push(id);
+    return id;
   };
+
+  const clearAllTimeouts = () => {
+    timeoutsRef.current.forEach(id => clearTimeout(id));
+    timeoutsRef.current = [];
+  };
+
+  useEffect(() => {
+    guessedLettersRef.current = guessedLetters;
+  }, [guessedLetters]);
+
+  useEffect(() => {
+    showQuestionRef.current = showQuestion;
+  }, [showQuestion]);
 
   const goToChooseDif = () => {
     setShowPopup(false);
     navigate('/chooseDif');
   };
-  
-  const timerRef = useRef<number | null>(null);
 
   const calculateScore = (remainingTime: number): number => {
-    const baseScores = {
-      facil: 50,
-      medio: 75,
-      dificil: 100
-    };
-    
-    const timeBonus = Math.floor(remainingTime * 0.75);
-    return baseScores[difficulty] + timeBonus;
+    return calculateScoreByDifficulty(validDifficulty, remainingTime);
   };
 
   const updateUserStats = (score: number) => {
     const currentUser = userService.getCurrentUser();
     if (currentUser) {
-      const newHighScore = Math.max(currentUser.highScore || 0, score);
-      userService.updateHighScore(currentUser.username, newHighScore);
-      console.log('Stats updated:', { username: currentUser.username, newHighScore });
+      userService.updateHighScore(currentUser.username, score);
+      console.log('Stats updated:', { username: currentUser.username, score });
     }
   };
 
   // Actualizar sugerencia cuando cambian las letras adivinadas
   useEffect(() => {
     const guessedArray = Array.from(guessedLetters);
-    const newSuggestion = ia.sugerir_letra(guessedArray);
+    const currentWordState = display.length > 0 ? display.join('') : undefined;
+    const newSuggestion = ia.sugerir_letra(guessedArray, currentWordState);
     setSuggestion(newSuggestion);
-  }, [guessedLetters]);
+  }, [guessedLetters, display, ia]);
 
   useEffect(() => {
     startGame();
@@ -331,43 +391,63 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
+      clearAllTimeouts();
     };
-  }, [difficulty]);
+  }, [validDifficulty]);
+
+  const triggerLoss = (word: string, lettersUsed: string[]) => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setGameOver(true);
+    setGameActive(false);
+    setShowQuestion(false);
+    showQuestionRef.current = false;
+    setMessage(`💥 ¡Boom! Perdiste. Era ${word}`);
+    ia.aprender_de_palabra(word, lettersUsed);
+    setPopupMessage(`💥 ¡Boom! La palabra era: ${word} 💥`);
+    setShowPopup(true);
+  };
 
   const startGame = () => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
-      setGameActive(true); 
-      setShowPopup(false);
+      timerRef.current = null;
     }
+    clearAllTimeouts();
 
-    const words = wordBank[difficulty];
+    const words = wordBank[validDifficulty];
     const newWord = words[Math.floor(Math.random() * words.length)];
     
-    const initialTime = difficulty === "facil" ? 120 : difficulty === "medio" ? 90 : 60;
+    const initialTime = validDifficulty === "facil" ? 120 : validDifficulty === "medio" ? 90 : 60;
+    const initialDisplay = createInitialDisplay(newWord);
 
     setSelectedWord(newWord);
-    setDisplay(Array(newWord.length).fill("_"));
+    setDisplay(initialDisplay);
     setTime(initialTime);
     setGameOver(false);
+    setGameActive(true);
+    setShowPopup(false);
     setMessage("");
-    setGuessedLetters(new Set());
+    const emptySet = new Set<string>();
+    setGuessedLetters(emptySet);
+    guessedLettersRef.current = emptySet;
     setFinalScore(0);
     setShowQuestion(false);
+    showQuestionRef.current = false;
     setCurrentQuestion(null);
     setUserAnswer("");
     setRedeemedTime(false);
 
     timerRef.current = setInterval(() => {
+      // Pausar el conteo regresivo mientras se responde la pregunta de tiempo extra
+      if (showQuestionRef.current) {
+        return;
+      }
       setTime(prevTime => {
         if (prevTime <= 1) {
-          if (timerRef.current) clearInterval(timerRef.current);
-          setGameOver(true);
-          setMessage(`💥 ¡Boom! Perdiste. Era ${newWord}`);
-          // La IA aprende también al perder
-          ia.aprender_de_palabra(newWord, Array.from(guessedLetters));
-          setPopupMessage(`💥 ¡Boom! La palabra era: ${newWord} 💥`);
-          setShowPopup(true);
+          triggerLoss(newWord, Array.from(guessedLettersRef.current));
           return 0;
         }
         return prevTime - 1;
@@ -377,8 +457,13 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
 
   const handleGuess = (letter: string) => {
     if (gameOver || showQuestion || !gameActive) return;
+    if (!isValidGuessInput(letter)) return;
 
     const normalizedGuess = normalizeLetter(letter);
+    if (guessedLetters.has(normalizedGuess)) {
+      return;
+    }
+
     let found = false;
 
     const newDisplay = [...display];
@@ -391,32 +476,48 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
       }
     });
 
+    const updatedGuessed = new Set([...guessedLetters, normalizedGuess]);
     setDisplay(newDisplay);
-    setGuessedLetters(prev => new Set([...prev, letter.toLowerCase()]));
+    setGuessedLetters(updatedGuessed);
+    guessedLettersRef.current = updatedGuessed;
+
+    let currentRemainingTime = time;
 
     if (!found) {
       // Penalización por letra incorrecta: -5 segundos
-      setTime(prevTime => Math.max(0, prevTime - 5));
+      const nextTime = Math.max(0, time - 5);
+      currentRemainingTime = nextTime;
+      setTime(nextTime);
+
+      if (nextTime <= 0) {
+        triggerLoss(selectedWord, Array.from(updatedGuessed));
+        return;
+      }
       
       // Mostrar pregunta de tiempo extra cuando el tiempo sea bajo
-      if (time <= 30 && !redeemedTime && !showQuestion) {
+      if (nextTime <= 30 && !redeemedTime && !showQuestion) {
         setShowQuestion(true);
+        showQuestionRef.current = true;
         const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
         setCurrentQuestion(randomQuestion);
       }
     } else {
       // La IA aprende cuando acierta
-      ia.aprender_de_palabra(selectedWord, [letter]);
+      ia.aprender_de_palabra(selectedWord, [normalizedGuess]);
     }
 
     // Verificar victoria
-    if (!newDisplay.includes("_")) {
-      const score = calculateScore(time);
+    if (newDisplay.length > 0 && !newDisplay.includes("_")) {
+      const score = calculateScore(currentRemainingTime);
       setFinalScore(score);
       updateUserStats(score);
       
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
       setGameOver(true);
+      setGameActive(false);
       setMessage(`🎉 ¡Ganaste!`);
       setPopupMessage(`🎉 ¡Felicidades! Ganaste con ${score} puntos 🎉`);
       setShowPopup(true);
@@ -425,48 +526,54 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
 
   const handleQuestionAnswer = () => {
     if (!currentQuestion) return;
+    if (!userAnswer.trim()) return;
 
-    const userAnswerNum = parseInt(userAnswer);
+    const userAnswerNum = parseInt(userAnswer.trim(), 10);
+    if (Number.isNaN(userAnswerNum)) return;
+
     if (userAnswerNum === currentQuestion.answer) {
       // +30 segundos por respuesta correcta
       setTime(prevTime => prevTime + 30);
       setRedeemedTime(true);
       setShowQuestion(false);
+      showQuestionRef.current = false;
       setCurrentQuestion(null);
       setUserAnswer("");
       setGameActive(true); // 🆕 Reactivar juego
       setMessage("✅ +30 segundos extra!");
       
-      setTimeout(() => {
+      registerTimeout(() => {
         const inputElement = document.getElementById("letter-input") as HTMLInputElement;
         if (inputElement) inputElement.focus();
       }, 50);
       
-      setTimeout(() => setMessage(""), 3000);
+      registerTimeout(() => setMessage(""), 3000);
     } else {
+      setRedeemedTime(true);
       setShowQuestion(false);
+      showQuestionRef.current = false;
       setCurrentQuestion(null);
       setUserAnswer("");
       setGameActive(true); // 🆕 Reactivar juego
       setMessage("❌ Respuesta incorrecta. Sigue jugando!");
       
-      setTimeout(() => {
+      registerTimeout(() => {
         const inputElement = document.getElementById("letter-input") as HTMLInputElement;
         if (inputElement) inputElement.focus();
       }, 50);
       
-      setTimeout(() => setMessage(""), 3000);
+      registerTimeout(() => setMessage(""), 3000);
     }
   };
 
   const handleSubmit = () => {
     const inputElement = document.getElementById("letter-input") as HTMLInputElement;
     if (inputElement) {
-      const letter = inputElement.value;
-      if (letter.length === 1) {
+      const letter = inputElement.value.trim();
+      if (letter.length === 1 && isValidGuessInput(letter)) {
         handleGuess(letter);
-        inputElement.value = "";
       }
+      inputElement.value = "";
     }
   };
 
@@ -488,7 +595,7 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
 
   return (
     <div className="game-container">
-      <h1>Boomwords - {difficulty}</h1>
+      <h1>Boomwords - {validDifficulty}</h1>
       
       <div className="game-info">
         <div id="timer" className="timer">Tiempo: {time}s</div>
@@ -501,7 +608,7 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
       <div id="word-display" className="word-display">
         {display.map((letter, index) => (
           <LetterCard 
-            key={index}
+            key={`${selectedWord}-${index}`}
             letter={letter}
             isRevealed={letter !== '_'}
             isSpace={letter === ' '}
@@ -529,7 +636,7 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
               maxLength={1}
               placeholder="Introduce una letra"
               disabled={gameOver || !gameActive}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
             />
           </div>
 
@@ -547,7 +654,7 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
             value={userAnswer}
             onChange={(e) => setUserAnswer(e.target.value)}
             placeholder="Tu respuesta"
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyPress}
           />
           <button onClick={handleQuestionAnswer}>
             Responder
