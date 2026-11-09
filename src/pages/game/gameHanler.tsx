@@ -340,6 +340,7 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const guessedLettersRef = useRef<Set<string>>(new Set());
   const showQuestionRef = useRef<boolean>(false);
+  const timeRef = useRef<number>(0);
 
   const registerTimeout = (fn: () => void, delay: number) => {
     const id = setTimeout(fn, delay);
@@ -359,6 +360,10 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
   useEffect(() => {
     showQuestionRef.current = showQuestion;
   }, [showQuestion]);
+
+  useEffect(() => {
+    timeRef.current = time;
+  }, [time]);
 
   const goToChooseDif = () => {
     setShowPopup(false);
@@ -426,6 +431,7 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
     setSelectedWord(newWord);
     setDisplay(initialDisplay);
     setTime(initialTime);
+    timeRef.current = initialTime;
     setGameOver(false);
     setGameActive(true);
     setShowPopup(false);
@@ -445,13 +451,15 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
       if (showQuestionRef.current) {
         return;
       }
-      setTime(prevTime => {
-        if (prevTime <= 1) {
-          triggerLoss(newWord, Array.from(guessedLettersRef.current));
-          return 0;
-        }
-        return prevTime - 1;
-      });
+      if (timeRef.current <= 1) {
+        timeRef.current = 0;
+        setTime(0);
+        triggerLoss(newWord, Array.from(guessedLettersRef.current));
+        return;
+      }
+      const nextTick = timeRef.current - 1;
+      timeRef.current = nextTick;
+      setTime(nextTick);
     }, 1000);
   };
 
@@ -487,6 +495,7 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
       // Penalización por letra incorrecta: -5 segundos
       const nextTime = Math.max(0, time - 5);
       currentRemainingTime = nextTime;
+      timeRef.current = nextTime;
       setTime(nextTime);
 
       if (nextTime <= 0) {
@@ -533,7 +542,9 @@ export const GameHandler = ({ difficulty }: GamePageProps) => {
 
     if (userAnswerNum === currentQuestion.answer) {
       // +30 segundos por respuesta correcta
-      setTime(prevTime => prevTime + 30);
+      const boostedTime = timeRef.current + 30;
+      timeRef.current = boostedTime;
+      setTime(boostedTime);
       setRedeemedTime(true);
       setShowQuestion(false);
       showQuestionRef.current = false;

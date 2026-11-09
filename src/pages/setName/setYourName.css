@@ -3,8 +3,11 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  overflow-x: hidden;
   margin: 0;
-  padding: 20px;
+  padding: clamp(0.75rem, 3vw, 20px);
   font-family: 'Wendy One', sans-serif;
   background-image: url(./../../assets/registerbackground.png);
   background-size: cover;
@@ -22,6 +25,7 @@
   --font-family: "Fira Code", Consolas, "Courier New", Courier, monospace;
   --glitch-anim-duration: 0.5s;
   width: 100%;
+  max-width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -38,6 +42,7 @@
     0 0 20px rgba(0, 242, 234, 0.1),
     inset 0 0 10px rgba(0, 0, 0, 0.5);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .card-header {
@@ -47,23 +52,32 @@
   background-color: rgba(0, 0, 0, 0.3);
   padding: 1em 1.5em;
   border-bottom: 1px solid rgba(0, 242, 234, 0.2);
+  gap: 0.5rem;
 }
 
 .card-title {
   color: var(--primary-color);
-  font-size: 1.2rem;
+  font-size: clamp(0.95rem, 3.5vw, 1.2rem);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   display: flex;
   align-items: center;
   gap: 0.5em;
+  min-width: 0;
 }
 
 .card-title svg {
   width: 1.8em;
   height: 1.8em;
+  flex-shrink: 0;
   stroke: var(--primary-color);
+}
+
+.card-dots {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .card-dots span {
@@ -76,7 +90,7 @@
 }
 
 .card-body {
-  padding: 2rem;
+  padding: clamp(1.25rem, 5vw, 2rem);
 }
 
 /* --- Form Elements --- */
@@ -89,7 +103,7 @@
   position: absolute;
   top: 1em;
   left: 0;
-  font-size: 1.2rem;
+  font-size: clamp(0.95rem, 3.5vw, 1.2rem);
   color: var(--primary-color);
   opacity: 0.6;
   text-transform: uppercase;
@@ -104,11 +118,12 @@
   border: none;
   border-bottom: 2px solid rgba(0, 242, 234, 0.3);
   padding: 1em 0;
-  font-size: 1.2rem;
+  font-size: clamp(1rem, 3.5vw, 1.2rem);
   color: var(--text-color);
   font-family: inherit;
   outline: none;
   transition: border-color 0.3s ease;
+  box-sizing: border-box;
 }
 
 .form-group input:focus {
@@ -189,6 +204,7 @@
   position: relative;
   transition: all 0.3s;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .submit-btn:hover:not(:disabled),
@@ -266,6 +282,7 @@
     opacity: 1;
   }
 }
+
 /* Error states */
 .input-error {
   border-bottom-color: #ff3e3e !important;
@@ -278,6 +295,7 @@
   display: block;
   text-transform: none;
   letter-spacing: 0.05em;
+  word-break: break-word;
 }
 
 /* Loading spinner */
@@ -302,7 +320,6 @@
 .submit-btn {
   position: relative; /* Added for spinner positioning */
 }
-
 
 .toggle-mode {
   text-align: center;
@@ -357,6 +374,7 @@
   font-family: 'Wendy One', sans-serif;
   font-size: 0.9rem;
   text-align: center;
+  word-break: break-word;
 }
 
 .recovery-alert.success {
@@ -371,17 +389,35 @@
   border: 1px solid #ef4444;
 }
 
-.toggle-btn {
-  background: none;
-  border: none;
-  color: #DB2A0A;
-  cursor: pointer;
-  font-family: 'Wendy One', sans-serif;
-  font-size: 0.9rem;
-  text-decoration: underline;
-  padding: 0.5rem;
+/* Tablets (481px a 1024px) */
+@media (min-width: 481px) and (max-width: 1024px) {
+  .glitch-card {
+    max-width: 460px;
+    min-height: auto;
+  }
 }
 
-.toggle-btn:hover {
-  color: #FF6B35;
+/* Móviles pequeños (320px a 480px) */
+@media (max-width: 480px) {
+  .setYourName-body {
+    padding: 0.75rem;
+    align-items: center;
+  }
+
+  .glitch-card {
+    max-width: 100%;
+    min-height: auto;
+  }
+
+  .card-header {
+    padding: 0.85em 1em;
+  }
+
+  .card-body {
+    padding: 1.25rem 1rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
 }

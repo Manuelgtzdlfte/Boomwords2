@@ -7,9 +7,13 @@
   background-repeat: no-repeat;
   background-position: center center;
   min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  overflow-x: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
+  box-sizing: border-box;
 }
 
 .gameContainer {
@@ -17,14 +21,20 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
+  max-width: 100%;
+  padding: clamp(1rem, 4vw, 2rem);
   position: relative;
+  box-sizing: border-box;
 }
 
 .gameTitle {
   position: relative;
-  font-size: 10vw;
+  font-size: clamp(2.5rem, 10vw, 9rem);
+  max-width: 100%;
+  text-align: center;
   white-space: nowrap;
   overflow: hidden;
   color: #F7CA05;
@@ -33,7 +43,7 @@
   z-index: 1;
   margin: 0;
   padding: 0;
-  margin-bottom: 3rem;
+  margin-bottom: clamp(1rem, 4vh, 3rem);
 }
 
 .gameTitle:hover {
@@ -66,6 +76,7 @@
   position: relative;
   z-index: 2;
   margin-top: 0;
+  max-width: 100%;
 }
 
 .glitched-button {
@@ -90,6 +101,8 @@
     1px 1px 0 #000;
   overflow: hidden;
   min-width: 200px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .glitch-text {
@@ -305,16 +318,22 @@
   top: 10%;
 }
 
-@media (max-width: 1200px) {
+/* Desktop (1025px en adelante) */
+@media (min-width: 1025px) {
   .gameTitle {
-    font-size: 15vw;
+    font-size: clamp(5rem, 10vw, 9rem);
   }
 }
 
-@media (max-width: 768px) {
+/* Tablets (481px a 1024px) */
+@media (min-width: 481px) and (max-width: 1024px) {
   .gameTitle {
-    font-size: 12vw;
-    margin-bottom: 1.5rem;
+    font-size: clamp(3.5rem, 12vw, 6.5rem);
+    margin-bottom: 2rem;
+    letter-spacing: -2px;
+  }
+  .bomb-position-adjustment {
+    top: 4%;
   }
   .glitched-button {
     padding: 1.2rem 2.5rem;
@@ -322,13 +341,24 @@
   }
 }
 
+/* Móviles pequeños (320px a 480px) */
 @media (max-width: 480px) {
   .gameTitle {
-    font-size: 10vw;
-    margin-bottom: 1rem;
+    font-size: clamp(2.4rem, 14vw, 3.6rem);
+    margin-bottom: 1.5rem;
+    letter-spacing: -1px;
+  }
+  .bomb-position-adjustment {
+    top: 0;
+    width: 100%;
+    max-width: 280px;
+    display: flex;
+    justify-content: center;
   }
   .glitched-button {
     padding: 1rem 2rem;
     font-size: 2rem;
+    width: 100%;
+    min-width: 0;
   }
 }
