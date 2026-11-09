@@ -142,5 +142,38 @@ describe('Módulo de Login y Autenticación (userService & UI)', () => {
       expect(screen.getByText('Main Home')).toBeInTheDocument();
       expect(userService.getCurrentUser()).toBeNull();
     });
+
+    it('ejecuta el flujo de recuperación de contraseña en la interfaz y redirige si ya hay sesión activa', () => {
+      vi.useFakeTimers();
+      userService.registerUser('RecoveryAgent', 'agent@boom.com', 'secretKey99');
+
+      render(
+        <MemoryRouter initialEntries={['/setYourName']}>
+          <Routes>
+            <Route path="/setYourName" element={<SetYourName />} />
+            <Route path="/chooseDif" element={<ChooseDif />} />
+          </Routes>
+        </MemoryRouter>
+      );
+
+      // Abrir flujo de recuperación
+      fireEvent.click(screen.getByRole('button', { name: /Forgot your access key\?/i }));
+      expect(screen.getByText('Password Recovery')).toBeInTheDocument();
+
+      fireEvent.change(screen.getByLabelText(/EMAIL/i), { target: { value: 'agent@boom.com' } });
+      fireEvent.click(screen.getByRole('button', { name: /SEND_RECOVERY_EMAIL/i }));
+
+      act(() => {
+        vi.advanceTimersByTime(1100);
+      });
+
+      expect(
+        screen.getByText(/Password recovery instructions have been sent to agent@boom\.com/i)
+      ).toBeInTheDocument();
+
+      // Volver a login
+      fireEvent.click(screen.getByRole('button', { name: /Back to login/i }));
+      expect(screen.getByText('Access System')).toBeInTheDocument();
+    });
   });
 });

@@ -1,4 +1,5 @@
 .letter-card {
+  position: relative;
   width: 60px;
   height: 80px;
   perspective: 1000px;
@@ -6,6 +7,7 @@
   display: inline-flex;
   align-items: center;    
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .letter-card.hidden {
@@ -111,13 +113,17 @@
 
 @media (max-width: 480px) {
   .letter-card {
-    width: 30px;
-    height: 45px;
-    margin: 0 2px;
+    width: clamp(26px, 7.5vw, 32px);
+    height: clamp(38px, 11vw, 46px);
+    margin: 2px;
   }
   
+  .letter-card.space {
+    width: 16px;
+  }
+
   .card-front, .card-back {
-    font-size: 1.5rem;
+    font-size: clamp(1.1rem, 4.5vw, 1.5rem);
     border-width: 2px;
   }
 }

@@ -183,6 +183,41 @@ describe('Lógica del Juego y Reglas (Validación, Diccionario, Temporizadores y
       expect(screen.getByText('Tiempo: 59s')).toBeInTheDocument();
       expect(screen.getByText(/\+30 segundos extra!/i)).toBeInTheDocument();
     });
+
+    it('permite usar la sugerencia de la IA cuando el tiempo es <= 40s y reiniciar partida desde el popup de fin de juego', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0); // 'bomba' en facil
+
+      render(
+        <MemoryRouter>
+          <GameHandler difficulty="facil" />
+        </MemoryRouter>
+      );
+
+      // Avanzar 85s para quedar en 35s (<= 40s activa sugerencia de IA)
+      act(() => {
+        vi.advanceTimersByTime(85000);
+      });
+      expect(screen.getByText('Tiempo: 35s')).toBeInTheDocument();
+
+      const suggestionBtn = screen.getByRole('button', { name: /Usar esta letra/i });
+      expect(suggestionBtn).toBeInTheDocument();
+      act(() => {
+        fireEvent.click(suggestionBtn);
+      });
+
+      // Agotar el tiempo restante para abrir el GamePopUp y probar "Jugar Otra Vez"
+      act(() => {
+        vi.advanceTimersByTime(35000);
+      });
+      expect(screen.getByText('Tiempo: 0s')).toBeInTheDocument();
+
+      const playAgainBtn = screen.getByRole('button', { name: /Jugar Otra Vez/i });
+      act(() => {
+        fireEvent.click(playAgainBtn);
+      });
+
+      expect(screen.getByText('Tiempo: 120s')).toBeInTheDocument();
+    });
   });
 
   describe('IA_Ahorcado - Aprendizaje y sugerencias', () => {
